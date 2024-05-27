@@ -59,7 +59,7 @@ class ParameterWindow:
             messagebox.showerror("Error", "All fields must be filled out.")
             return
 
-        self.add_callback(self.file_path, x_col, y_col, z_col, method, cell_size, blanking)
+        self.add_callback(self.file_path, x_col, y_col, z_col, method, cell_size, blanking, "Loaded")
         self.window.destroy()
 
 class GridFileConverter:
@@ -74,7 +74,10 @@ class GridFileConverter:
         self.add_file_button = tk.Button(self.root, text="Add Files", command=self.add_files)
         self.add_file_button.grid(row=0, column=0, padx=10, pady=10, sticky='w')
 
-        self.tree = ttk.Treeview(self.root, columns=("File", "X Column", "Y Column", "Z Column", "Grid Method", "Cell Size", "Blanking"), show="headings")
+        self.clear_button = tk.Button(self.root, text="Clear All", command=self.clear_all_files)
+        self.clear_button.grid(row=0, column=1, padx=10, pady=10, sticky='w')
+
+        self.tree = ttk.Treeview(self.root, columns=("File", "X Column", "Y Column", "Z Column", "Grid Method", "Cell Size", "Blanking", "Status"), show="headings")
         self.tree.heading("File", text="File")
         self.tree.heading("X Column", text="X Column")
         self.tree.heading("Y Column", text="Y Column")
@@ -82,6 +85,7 @@ class GridFileConverter:
         self.tree.heading("Grid Method", text="Grid Method")
         self.tree.heading("Cell Size", text="Cell Size")
         self.tree.heading("Blanking", text="Blanking")
+        self.tree.heading("Status", text="Status")
 
         self.tree.column("File", width=200)
         self.tree.column("X Column", width=100)
@@ -90,11 +94,15 @@ class GridFileConverter:
         self.tree.column("Grid Method", width=100)
         self.tree.column("Cell Size", width=100)
         self.tree.column("Blanking", width=100)
+        self.tree.column("Status", width=100)
 
         self.tree.grid(row=1, column=0, columnspan=4, padx=10, pady=10)
 
         self.process_button = tk.Button(self.root, text="Process All", command=self.process_all_files)
         self.process_button.grid(row=2, column=3, padx=10, pady=10, sticky='e')
+
+        self.progress = ttk.Progressbar(self.root, orient="horizontal", length=300, mode="determinate")
+        self.progress.grid(row=2, column=2, padx=10, pady=10, sticky='e')
 
     def add_files(self):
         file_paths = filedialog.askopenfilenames(filetypes=[("CSV Files", "*.csv")])
@@ -108,22 +116,33 @@ class GridFileConverter:
 
             ParameterWindow(self.root, file_path, columns, self.add_to_tree)
 
-    def add_to_tree(self, file_path, x_col, y_col, z_col, method, cell_size, blanking):
-        self.tree.insert("", "end", values=(file_path, x_col, y_col, z_col, method, cell_size, blanking))
+    def add_to_tree(self, file_path, x_col, y_col, z_col, method, cell_size, blanking, status):
+        self.tree.insert("", "end", values=(file_path, x_col, y_col, z_col, method, cell_size, blanking, status))
 
     def process_all_files(self):
-        for item in self.tree.get_children():
+        total_files = len(self.tree.get_children())
+        if total_files == 0:
+            return
+
+        self.progress["value"] = 0
+        self.progress["maximum"] = total_files
+
+        for index, item in enumerate(self.tree.get_children()):
             values = self.tree.item(item, "values")
-            file_path, x_col, y_col, z_col, method, cell_size, blanking = values
+            file_path, x_col, y_col, z_col, method, cell_size, blanking, status = values
+            
+            self.tree.item(item, values=(file_path, x_col, y_col, z_col, method, cell_size, blanking, "Processing..."))
+            self.root.update_idletasks()  # Update UI to show the pending status
+
             df = pd.read_csv(file_path)
 
             try:
-                data = df[[x_col, y_col, z_col]].copy()  # Fixed here
+                data = df[[x_col, y_col, z_col]].copy()
                 data.columns = ['X', 'Y', 'Z']
                 data.dropna(subset=['X', 'Y', 'Z'], inplace=True)
 
                 if data.empty:
-                    messagebox.showerror("Error", f"No valid data points found in {file_path} after removing NaNs.")
+                    self.tree.item(item, values=(file_path, x_col, y_col, z_col, method, cell_size, blanking, "Error"))
                     continue
 
                 xi, yi, zi = self.grid_data(data, method, float(cell_size), float(blanking))
@@ -133,10 +152,14 @@ class GridFileConverter:
                 output_file = f"{input_filename}-grid-output-{timestamp}.xyz"
 
                 self.save_grid_to_xyz(xi, yi, zi, output_file)
-                messagebox.showinfo("Success", f"Grid file saved to {output_file}.")
+                self.tree.item(item, values=(file_path, x_col, y_col, z_col, method, cell_size, blanking, "Completed"))
 
             except Exception as e:
-                messagebox.showerror("Error", f"Error processing {file_path}: {str(e)}")
+                self.tree.item(item, values=(file_path, x_col, y_col, z_col, method, cell_size, blanking, "Error"))
+
+            # Update progress bar
+            self.progress["value"] = index + 1
+            self.root.update_idletasks()
 
     def grid_data(self, df, method, cell_size, blanking):
         x = df['X']
@@ -158,6 +181,12 @@ class GridFileConverter:
             for i in range(rows):
                 for j in range(cols):
                     f.write(f"{xi[i, j]} {yi[i, j]} {zi[i, j]}\n")
+
+    def clear_all_files(self):
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+        self.files.clear()
+        self.progress["value"] = 0
 
 if __name__ == "__main__":
     root = tk.Tk()
