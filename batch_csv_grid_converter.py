@@ -6,6 +6,62 @@ from scipy.interpolate import griddata
 import os
 from datetime import datetime
 
+class ParameterWindow:
+    def __init__(self, master, file_path, columns, add_callback):
+        self.master = master
+        self.file_path = file_path
+        self.add_callback = add_callback
+
+        self.window = tk.Toplevel(master)
+        self.window.title(f"Parameters for {os.path.basename(file_path)}")
+
+        tk.Label(self.window, text="X Column:").grid(row=0, column=0, padx=10, pady=5, sticky='w')
+        self.x_var = tk.StringVar()
+        self.x_menu = ttk.Combobox(self.window, textvariable=self.x_var, values=columns)
+        self.x_menu.grid(row=0, column=1, padx=10, pady=5, sticky='w')
+
+        tk.Label(self.window, text="Y Column:").grid(row=1, column=0, padx=10, pady=5, sticky='w')
+        self.y_var = tk.StringVar()
+        self.y_menu = ttk.Combobox(self.window, textvariable=self.y_var, values=columns)
+        self.y_menu.grid(row=1, column=1, padx=10, pady=5, sticky='w')
+
+        tk.Label(self.window, text="Z Column:").grid(row=2, column=0, padx=10, pady=5, sticky='w')
+        self.z_var = tk.StringVar()
+        self.z_menu = ttk.Combobox(self.window, textvariable=self.z_var, values=columns)
+        self.z_menu.grid(row=2, column=1, padx=10, pady=5, sticky='w')
+
+        tk.Label(self.window, text="Grid Method:").grid(row=3, column=0, padx=10, pady=5, sticky='w')
+        self.method_var = tk.StringVar(value="linear")
+        self.method_menu = ttk.Combobox(self.window, textvariable=self.method_var, values=["linear", "nearest", "cubic"])
+        self.method_menu.grid(row=3, column=1, padx=10, pady=5, sticky='w')
+
+        tk.Label(self.window, text="Cell Size:").grid(row=4, column=0, padx=10, pady=5, sticky='w')
+        self.cell_size_entry = tk.Entry(self.window)
+        self.cell_size_entry.insert(0, "0.001")
+        self.cell_size_entry.grid(row=4, column=1, padx=10, pady=5, sticky='w')
+
+        tk.Label(self.window, text="Blanking:").grid(row=5, column=0, padx=10, pady=5, sticky='w')
+        self.blanking_entry = tk.Entry(self.window)
+        self.blanking_entry.insert(0, "-9999")
+        self.blanking_entry.grid(row=5, column=1, padx=10, pady=5, sticky='w')
+
+        tk.Button(self.window, text="Add", command=self.add_to_tree).grid(row=6, column=0, columnspan=2, padx=10, pady=10)
+
+    def add_to_tree(self):
+        x_col = self.x_var.get()
+        y_col = self.y_var.get()
+        z_col = self.z_var.get()
+        method = self.method_var.get()
+        cell_size = self.cell_size_entry.get()
+        blanking = self.blanking_entry.get()
+
+        if not x_col or not y_col or not z_col or not method or not cell_size or not blanking:
+            messagebox.showerror("Error", "All fields must be filled out.")
+            return
+
+        self.add_callback(self.file_path, x_col, y_col, z_col, method, cell_size, blanking)
+        self.window.destroy()
+
 class GridFileConverter:
     def __init__(self, root):
         self.root = root
@@ -15,11 +71,9 @@ class GridFileConverter:
         self.create_widgets()
 
     def create_widgets(self):
-        # Add file button
         self.add_file_button = tk.Button(self.root, text="Add Files", command=self.add_files)
         self.add_file_button.grid(row=0, column=0, padx=10, pady=10, sticky='w')
 
-        # Treeview for files and parameters
         self.tree = ttk.Treeview(self.root, columns=("File", "X Column", "Y Column", "Z Column", "Grid Method", "Cell Size", "Blanking"), show="headings")
         self.tree.heading("File", text="File")
         self.tree.heading("X Column", text="X Column")
@@ -39,7 +93,6 @@ class GridFileConverter:
 
         self.tree.grid(row=1, column=0, columnspan=4, padx=10, pady=10)
 
-        # Process button
         self.process_button = tk.Button(self.root, text="Process All", command=self.process_all_files)
         self.process_button.grid(row=2, column=3, padx=10, pady=10, sticky='e')
 
@@ -53,51 +106,10 @@ class GridFileConverter:
             columns = list(df.columns)
             self.files.append((file_path, df))
 
-            # Open a new window for parameter selection
-            param_window = tk.Toplevel(self.root)
-            param_window.title(f"Parameters for {os.path.basename(file_path)}")
+            ParameterWindow(self.root, file_path, columns, self.add_to_tree)
 
-            tk.Label(param_window, text="X Column:").grid(row=0, column=0, padx=10, pady=5, sticky='w')
-            x_var = tk.StringVar()
-            x_menu = ttk.Combobox(param_window, textvariable=x_var, values=columns)
-            x_menu.grid(row=0, column=1, padx=10, pady=5, sticky='w')
-
-            tk.Label(param_window, text="Y Column:").grid(row=1, column=0, padx=10, pady=5, sticky='w')
-            y_var = tk.StringVar()
-            y_menu = ttk.Combobox(param_window, textvariable=y_var, values=columns)
-            y_menu.grid(row=1, column=1, padx=10, pady=5, sticky='w')
-
-            tk.Label(param_window, text="Z Column:").grid(row=2, column=0, padx=10, pady=5, sticky='w')
-            z_var = tk.StringVar()
-            z_menu = ttk.Combobox(param_window, textvariable=z_var, values=columns)
-            z_menu.grid(row=2, column=1, padx=10, pady=5, sticky='w')
-
-            tk.Label(param_window, text="Grid Method:").grid(row=3, column=0, padx=10, pady=5, sticky='w')
-            method_var = tk.StringVar(value="linear")
-            method_menu = ttk.Combobox(param_window, textvariable=method_var, values=["linear", "nearest", "cubic"])
-            method_menu.grid(row=3, column=1, padx=10, pady=5, sticky='w')
-
-            tk.Label(param_window, text="Cell Size:").grid(row=4, column=0, padx=10, pady=5, sticky='w')
-            cell_size_entry = tk.Entry(param_window)
-            cell_size_entry.insert(0, "0.001")
-            cell_size_entry.grid(row=4, column=1, padx=10, pady=5, sticky='w')
-
-            tk.Label(param_window, text="Blanking:").grid(row=5, column=0, padx=10, pady=5, sticky='w')
-            blanking_entry = tk.Entry(param_window)
-            blanking_entry.insert(0, "-9999")
-            blanking_entry.grid(row=5, column=1, padx=10, pady=5, sticky='w')
-
-            def add_to_tree(file_path):
-                x_col = x_var.get()
-                y_col = y_var.get()
-                z_col = z_var.get()
-                method = method_var.get()
-                cell_size = cell_size_entry.get()
-                blanking = blanking_entry.get()
-                self.tree.insert("", "end", values=(file_path, x_col, y_col, z_col, method, cell_size, blanking))
-                param_window.destroy()
-
-            tk.Button(param_window, text="Add", command=lambda: add_to_tree(file_path)).grid(row=6, column=0, columnspan=2, padx=10, pady=10)
+    def add_to_tree(self, file_path, x_col, y_col, z_col, method, cell_size, blanking):
+        self.tree.insert("", "end", values=(file_path, x_col, y_col, z_col, method, cell_size, blanking))
 
     def process_all_files(self):
         for item in self.tree.get_children():
@@ -116,7 +128,6 @@ class GridFileConverter:
 
                 xi, yi, zi = self.grid_data(data, method, float(cell_size), float(blanking))
 
-                # Create output file name with -grid-output suffix and current datetime
                 input_filename = os.path.splitext(os.path.basename(file_path))[0]
                 timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
                 output_file = f"{input_filename}-grid-output-{timestamp}.xyz"
