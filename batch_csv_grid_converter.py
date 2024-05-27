@@ -118,7 +118,7 @@ class GridFileConverter:
             df = pd.read_csv(file_path)
 
             try:
-                data = df[[x_col, y_col, z_col]]
+                data = df[[x_col, y_col, z_col]].copy()  # Fixed here
                 data.columns = ['X', 'Y', 'Z']
                 data.dropna(subset=['X', 'Y', 'Z'], inplace=True)
 
