@@ -37,3 +37,13 @@ MANIFEST
 #  before PyInstaller builds the exe, so as to inject date/
 .vscode
 *.xyz
+
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

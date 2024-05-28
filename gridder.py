@@ -78,7 +78,7 @@ class ParameterWindow:
 class GridFileConverter:
     def __init__(self, root):
         self.root = root
-        self.root.title("OG Gridder - Batch Converter")
+        self.root.title("OG Gridder - Batch XYZ Converter")
 
         self.files = []
         self.create_widgets()

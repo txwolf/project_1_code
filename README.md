@@ -46,7 +46,7 @@ Grid File Converter is a Python application designed to convert CSV files into g
 1. **Run the Application**
 
    ```bash
-   python batch-converter.py
+   python gridder.py
    ```
 
 2. **Use the GUI to:**
