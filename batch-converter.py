@@ -233,6 +233,7 @@ class GridFileConverter:
             self.tree.delete(item)
         self.files.clear()
         self.progress["value"] = 0
+        self.progress_text.set("Progress: 0%")
         self.update_summary()
 
 if __name__ == "__main__":
