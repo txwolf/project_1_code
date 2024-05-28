@@ -89,10 +89,10 @@ class GridFileConverter:
         self.add_file_button.grid(row=0, column=0, padx=10, pady=10, sticky='w')
 
         self.clear_button = tk.Button(self.root, text="Clear All", command=self.clear_all_files)
-        self.clear_button.grid(row=0, column=3, padx=10, pady=10, sticky='w')
+        self.clear_button.grid(row=0, column=3, padx=10, pady=10, sticky='e')
 
         # Treeview to display the files and their parameters
-        self.tree = ttk.Treeview(self.root, columns=("File", "X Column", "Y Column", "Z Column", "Cell Size", "Blanking", "Status"), show="headings")
+        self.tree = ttk.Treeview(self.root, height=20, columns=("File", "X Column", "Y Column", "Z Column", "Cell Size", "Blanking", "Status"), show="headings")
         self.tree.heading("File", text="File")
         self.tree.heading("X Column", text="X Column")
         self.tree.heading("Y Column", text="Y Column")
@@ -109,7 +109,14 @@ class GridFileConverter:
         self.tree.column("Blanking", width=50)
         self.tree.column("Status", width=100)
 
-        self.tree.grid(row=1, column=0, columnspan=4, padx=10, pady=10)
+        self.tree.grid(row=1, column=0, columnspan=4, padx=10, pady=(10, 0), sticky='nsew')
+
+        # Configure row and column weights for resizing
+        self.root.grid_rowconfigure(1, weight=1)
+        self.root.grid_columnconfigure(0, weight=1)
+        self.root.grid_columnconfigure(1, weight=1)
+        self.root.grid_columnconfigure(2, weight=1)
+        self.root.grid_columnconfigure(3, weight=1)
 
         # Summary label under the table, moved to the right
         self.summary_label = tk.Label(self.root, text="No files loaded.")
@@ -119,14 +126,17 @@ class GridFileConverter:
         self.progress_text = tk.StringVar()
         self.progress_text.set("Progress: 0%")
         self.progress_label = tk.Label(self.root, textvariable=self.progress_text)
-        self.progress_label.grid(row=2, column=0, columnspan=4, padx=10, pady=5, sticky='w')
+        self.progress_label.grid(row=2, column=0, columnspan=3, padx=10, pady=5, sticky='w')
 
         self.progress = ttk.Progressbar(self.root, length=400, mode='determinate')
-        self.progress.grid(row=3, column=0, columnspan=5, padx=10, pady=10, sticky='w')
+        self.progress.grid(row=3, column=0, columnspan=4, padx=10, pady=(0, 10), sticky='nsew')
 
         # Process All button at the bottom-right corner
         self.process_button = tk.Button(self.root, text="Process All", command=self.process_all_files)
-        self.process_button.grid(row=3, column=3, padx=10, pady=10, sticky='e')
+        self.process_button.grid(row=4, column=3, padx=10, pady=10, sticky='e')
+
+        # Configure row 4 to expand
+        self.root.grid_rowconfigure(4, weight=1)
 
     def add_files(self):
         file_paths = filedialog.askopenfilenames(filetypes=[("CSV Files", "*.csv")])
